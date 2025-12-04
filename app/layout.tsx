@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Tuition Management System",
   description: "Manage students, classes, fees, and payments efficiently",
+  manifest: "/manifest.json",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+  themeColor: "#6366f1",
 };
 
 export default function RootLayout({
@@ -22,3 +25,4 @@ export default function RootLayout({
     </html>
   );
 }
+
