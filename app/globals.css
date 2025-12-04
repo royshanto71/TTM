@@ -186,6 +186,78 @@ a {
       line-height: 2.75rem;
     }
   }
+  
+  .text-responsive-2xl {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+  
+  @media (min-width: 768px) {
+    .text-responsive-2xl {
+      font-size: 2.5rem;
+      line-height: 3rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .text-responsive-2xl {
+      font-size: 3rem;
+      line-height: 3.5rem;
+    }
+  }
+  
+  .text-responsive-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  
+  @media (min-width: 768px) {
+    .text-responsive-lg {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+  }
+  
+  /* Prevent text overflow */
+  .text-truncate-safe {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .text-break-word {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Safe area padding for modern mobile devices */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .px-safe {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Optimized spacing for mobile */
+  .space-y-mobile {
+    margin-top: 1rem;
+  }
+  
+  .space-y-mobile > * + * {
+    margin-top: 1rem;
+  }
+  
+  @media (min-width: 768px) {
+    .space-y-mobile > * + * {
+      margin-top: 2rem;
+    }
+  }
 }
 
 /* Mobile-specific improvements */

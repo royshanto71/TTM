@@ -62,11 +62,11 @@ export default function AppLayout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="flex min-h-screen pb-16 md:pb-0">
+    <div className="flex min-h-screen pb-14 md:pb-0">
       {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 glass border-b border-[var(--border)] z-40 flex items-center justify-between px-4">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-14 glass border-b border-[var(--border)] z-40 flex items-center justify-between px-3">
         <div>
-          <h1 className="text-xl font-bold gradient-primary bg-clip-text text-transparent">
+          <h1 className="text-lg font-bold gradient-primary bg-clip-text text-transparent">
             {logoText}
           </h1>
         </div>
@@ -125,8 +125,8 @@ export default function AppLayout({ children }: LayoutProps) {
       </aside>
 
       {/* Bottom Navigation - Mobile Only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-[var(--border)] z-50 px-2 pb-safe">
-        <div className="flex justify-around items-center h-16">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-[var(--border)] z-50 safe-bottom">
+        <div className="flex justify-around items-center h-14 px-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -136,16 +136,16 @@ export default function AppLayout({ children }: LayoutProps) {
                 key={item.href}
                 href={item.href}
                 className={`
-                  flex flex-col items-center justify-center w-full h-full
-                  transition-all duration-200
+                  flex flex-col items-center justify-center flex-1 h-full gap-0.5 min-w-0
+                  transition-all duration-200 px-1
                   ${isActive 
                     ? 'text-indigo-400' 
                     : 'text-gray-500 hover:text-gray-300'
                   }
                 `}
               >
-                <Icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''} transition-transform`} />
-                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'scale-110' : ''} transition-transform`} />
+                <span className="text-[9px] font-medium truncate w-full text-center">{item.label}</span>
               </Link>
             );
           })}

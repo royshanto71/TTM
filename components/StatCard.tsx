@@ -28,14 +28,14 @@ export default function StatCard({
   return (
     <Card className="relative overflow-hidden">
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-gray-400 text-sm mb-1">{title}</p>
-          <h3 className="text-3xl font-bold mb-1">{value}</h3>
+        <div className="min-w-0 flex-1">
+          <p className="text-gray-400 text-xs md:text-sm mb-1">{title}</p>
+          <h3 className="text-2xl md:text-3xl font-bold mb-1 truncate">{value}</h3>
           {subtitle && (
-            <p className="text-gray-500 text-xs">{subtitle}</p>
+            <p className="text-gray-500 text-xs truncate">{subtitle}</p>
           )}
         </div>
-        <div className={`p-3 rounded-lg ${variants[variant]}`}>
+        <div className={`p-2 md:p-3 rounded-lg ${variants[variant]} flex-shrink-0`}>
           {icon}
         </div>
       </div>

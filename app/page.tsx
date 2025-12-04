@@ -118,14 +118,14 @@ export default function Home() {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-4 md:space-y-8">
         <div>
-          <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
-          <p className="text-gray-400">Welcome back! Here&apos;s your overview.</p>
+          <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">Dashboard</h1>
+          <p className="text-gray-400 text-sm md:text-base">Welcome back! Here&apos;s your overview.</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <StatCard
             title="Total Students"
             value={stats.totalStudents}
@@ -155,7 +155,7 @@ export default function Home() {
 
         {/* Progress Section */}
         <Card>
-          <h2 className="text-2xl font-bold mb-6">Monthly Progress</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Monthly Progress</h2>
           <ProgressBar
             current={stats.totalMonthlyCompleted}
             target={stats.totalMonthlyTarget}
@@ -166,24 +166,24 @@ export default function Home() {
 
         {/* Recent Payments */}
         <Card>
-          <h2 className="text-2xl font-bold mb-6">Recent Payments</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Recent Payments</h2>
           {recentPayments.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">No recent payments</p>
+            <p className="text-gray-400 text-center py-8 text-sm md:text-base">No recent payments</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 md:space-y-3">
               {recentPayments.map((payment) => (
                 <div
                   key={payment.id}
-                  className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors"
+                  className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors"
                 >
-                  <div>
-                    <p className="font-medium">{payment.students?.name}</p>
-                    <p className="text-sm text-gray-400">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm md:text-base truncate">{payment.students?.name}</p>
+                    <p className="text-xs md:text-sm text-gray-400">
                       {payment.month} {payment.year}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-green-400">৳{payment.amount}</p>
+                  <div className="text-right ml-3 flex-shrink-0">
+                    <p className="font-bold text-green-400 text-sm md:text-base">৳{payment.amount}</p>
                     <p className="text-xs text-gray-500">
                       {new Date(payment.date).toLocaleDateString()}
                     </p>

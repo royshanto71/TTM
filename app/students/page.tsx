@@ -117,16 +117,16 @@ export default function StudentsPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Students</h1>
-            <p className="text-gray-400">Manage your students</p>
+            <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">Students</h1>
+            <p className="text-gray-400 text-sm md:text-base">Manage your students</p>
           </div>
-          <Button onClick={() => setShowAddModal(true)}>
+          <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
             <Plus className="w-5 h-5 mr-2" />
-            Add Student
+            <span className="md:inline">Add Student</span>
           </Button>
         </div>
 
@@ -145,48 +145,51 @@ export default function StudentsPage() {
         {/* Students Grid */}
         {filteredStudents.length === 0 ? (
           <Card>
-            <p className="text-gray-400 text-center py-12">
+            <p className="text-gray-400 text-center py-8 md:py-12 text-sm md:text-base">
               {searchQuery ? 'No students found' : 'No students yet. Add your first student!'}
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
             {filteredStudents.map((student) => (
               <Card key={student.id} hover>
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   <div>
-                    <h3 className="text-xl font-bold mb-1">{student.name}</h3>
-                    <p className="text-gray-400 text-sm">Class: {student.class}</p>
+                    <h3 className="text-lg md:text-xl font-bold mb-1 truncate">{student.name}</h3>
+                    <p className="text-gray-400 text-xs md:text-sm truncate">Class: {student.class}</p>
                   </div>
 
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Contact:</span>
-                      <span>{student.contact}</span>
+                  <div className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-gray-400 flex-shrink-0">Contact:</span>
+                      <span className="truncate text-right">{student.contact}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Monthly Target:</span>
-                      <span>{student.monthly_target_classes} classes</span>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-gray-400 flex-shrink-0">Monthly Target:</span>
+                      <span className="truncate text-right">{student.monthly_target_classes} classes</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Fees:</span>
-                      <span className="text-green-400 font-medium">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-gray-400 flex-shrink-0">Fees:</span>
+                      <span className="text-green-400 font-medium truncate text-right">
                         ৳{student.fees_per_month}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-4 border-t border-gray-700">
+                  <div className="flex gap-2 pt-3 md:pt-4 border-t border-gray-700">
                     <Button
                       variant="ghost"
-                      className="flex-1"
+                      size="sm"
+                      className="flex-1 text-xs md:text-sm"
                       onClick={() => setSelectedStudent(student)}
                     >
-                      <Eye className="w-4 h-4 mr-2" />
+                      <Eye className="w-4 h-4 mr-1 md:mr-2" />
                       View
                     </Button>
                     <Button
                       variant="danger"
+                      size="sm"
+                      className="text-xs md:text-sm"
                       onClick={() => handleDeleteStudent(student.id)}
                     >
                       <Trash2 className="w-4 h-4" />
