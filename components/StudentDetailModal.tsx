@@ -252,11 +252,11 @@ export default function StudentDetailModal({
 
           {/* Monthly Progress */}
           <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Monthly Progress</h3>
-              <Button variant="warning" onClick={handleStartNewMonth}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <h3 className="text-lg md:text-xl font-bold">Monthly Progress</h3>
+              <Button variant="warning" size="sm" onClick={handleStartNewMonth} className="w-full sm:w-auto">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Start New Month
+                <span className="truncate">Start New Month</span>
               </Button>
             </div>
             <ProgressBar
@@ -265,35 +265,39 @@ export default function StudentDetailModal({
               label="Classes Completed"
               variant="success"
             />
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col sm:flex-row gap-2">
               <Input
                 type="number"
+                label="New Target"
                 value={newMonthlyTarget}
                 onChange={(e) => setNewMonthlyTarget(parseInt(e.target.value))}
                 className="flex-1"
               />
-              <Button onClick={handleUpdateMonthlyTarget}>Update Target</Button>
+              <Button onClick={handleUpdateMonthlyTarget} size="sm" className="w-full sm:w-auto sm:mt-6">
+                <span className="truncate">Update Target</span>
+              </Button>
             </div>
           </Card>
 
           {/* Classes */}
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold flex items-center gap-2">
+              <h3 className="text-lg md:text-xl font-bold flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
                 Classes
               </h3>
             </div>
-            <div className="flex gap-2 mb-4">
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
               <Input
                 type="date"
+                label="Date"
                 value={classDate}
                 onChange={(e) => setClassDate(e.target.value)}
                 className="flex-1"
               />
-              <Button onClick={handleAddClass}>
+              <Button onClick={handleAddClass} size="sm" className="w-full sm:w-auto sm:mt-6">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Class
+                <span className="truncate">Add Class</span>
               </Button>
             </div>
             <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -371,18 +375,19 @@ export default function StudentDetailModal({
                 Notes
               </h3>
             </div>
-            <div className="flex gap-2 mb-4">
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
               <Input
                 type="text"
+                label="Note"
                 placeholder="Add a note..."
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 className="flex-1"
                 onKeyPress={(e) => e.key === 'Enter' && handleAddNote()}
               />
-              <Button onClick={handleAddNote}>
+              <Button onClick={handleAddNote} size="sm" className="w-full sm:w-auto sm:mt-6">
                 <Plus className="w-4 h-4 mr-2" />
-                Add
+                <span className="truncate">Add</span>
               </Button>
             </div>
             <div className="space-y-2 max-h-48 overflow-y-auto">

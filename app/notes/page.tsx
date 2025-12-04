@@ -160,12 +160,12 @@ export default function NotesPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Notes</h1>
-            <p className="text-gray-400">Manage student notes and observations</p>
+            <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">Notes</h1>
+            <p className="text-gray-400 text-sm md:text-base">Manage student notes and observations</p>
           </div>
           <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
             <Plus className="w-5 h-5 mr-2" />
@@ -188,7 +188,7 @@ export default function NotesPage() {
         {/* Notes Grid */}
         {filteredNotes.length === 0 ? (
           <Card>
-            <p className="text-gray-400 text-center py-12">
+            <p className="text-gray-400 text-center py-8 md:py-12 text-sm md:text-base">
               {searchQuery ? 'No notes found' : 'No notes yet. Add your first note!'}
             </p>
           </Card>
@@ -219,16 +219,17 @@ export default function NotesPage() {
                     </p>
                   </div>
 
-                  <div className="flex gap-2 pt-2 border-t border-gray-700">
+                  <div className="flex gap-2 pt-2 md:pt-3 border-t border-gray-700">
                     <Button
                       variant="ghost"
-                      className="flex-1"
+                      size="sm"
+                      className="flex-1 text-xs md:text-sm"
                       onClick={() => openEditModal(note)}
                     >
-                      <Edit2 className="w-4 h-4 mr-2" />
+                      <Edit2 className="w-4 h-4 mr-1 md:mr-2" />
                       Edit
                     </Button>
-                    <Button variant="danger" onClick={() => handleDeleteNote(note.id)}>
+                    <Button variant="danger" size="sm" className="text-xs md:text-sm" onClick={() => handleDeleteNote(note.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
