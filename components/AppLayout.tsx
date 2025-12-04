@@ -10,7 +10,8 @@ import {
   DollarSign,
   StickyNote,
   LogOut,
-  Menu
+  Menu,
+  FileUp
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Button from './Button';
@@ -30,6 +31,7 @@ export default function AppLayout({ children }: LayoutProps) {
     { href: '/classes', icon: BookOpen, label: 'Classes' },
     { href: '/payments', icon: DollarSign, label: 'Payments' },
     { href: '/notes', icon: StickyNote, label: 'Notes' },
+    { href: '/import', icon: FileUp, label: 'Import' },
   ];
 
   async function handleLogout() {
