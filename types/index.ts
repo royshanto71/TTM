@@ -12,8 +12,16 @@ export interface Class {
   id: string;
   student_id: string;
   date: string;
+  time?: string;
   completed_count: number;
   created_at: string;
+}
+
+export interface Settings {
+  id: string;
+  key: string;
+  value: string;
+  updated_at: string;
 }
 
 export interface Payment {

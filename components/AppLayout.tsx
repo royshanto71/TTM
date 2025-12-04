@@ -11,10 +11,12 @@ import {
   StickyNote,
   LogOut,
   Menu,
-  FileUp
+  FileUp,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Button from './Button';
+import { getAppName, getLogoText, getTagline } from '@/lib/settingsHelpers';
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,6 +26,24 @@ export default function AppLayout({ children }: LayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [appName, setAppName] = useState('TMS');
+  const [logoText, setLogoText] = useState('TMS');
+  const [tagline, setTagline] = useState('Tuition Management System');
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  async function loadSettings() {
+    const [name, logo, tag] = await Promise.all([
+      getAppName(),
+      getLogoText(),
+      getTagline(),
+    ]);
+    setAppName(name);
+    setLogoText(logo);
+    setTagline(tag);
+  }
 
   const navItems = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -32,6 +52,7 @@ export default function AppLayout({ children }: LayoutProps) {
     { href: '/payments', icon: DollarSign, label: 'Payments' },
     { href: '/notes', icon: StickyNote, label: 'Notes' },
     { href: '/import', icon: FileUp, label: 'Import' },
+    { href: '/settings', icon: SettingsIcon, label: 'Settings' },
   ];
 
   async function handleLogout() {
@@ -46,7 +67,7 @@ export default function AppLayout({ children }: LayoutProps) {
       <header className="md:hidden fixed top-0 left-0 right-0 h-16 glass border-b border-[var(--border)] z-40 flex items-center justify-between px-4">
         <div>
           <h1 className="text-xl font-bold gradient-primary bg-clip-text text-transparent">
-            TMS
+            {logoText}
           </h1>
         </div>
         <button
@@ -62,9 +83,9 @@ export default function AppLayout({ children }: LayoutProps) {
       <aside className="hidden md:block w-64 glass border-r border-[var(--border)] p-6 fixed h-screen z-50">
         <div className="mb-8">
           <h1 className="text-2xl font-bold gradient-primary bg-clip-text text-transparent">
-            TMS
+            {logoText}
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Tuition Management</p>
+          <p className="text-sm text-gray-400 mt-1">{tagline}</p>
         </div>
 
         <nav className="space-y-2">

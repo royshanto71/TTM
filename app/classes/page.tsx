@@ -6,7 +6,8 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
-import { Plus, Search, Trash2, Calendar, CheckCircle, Clock } from 'lucide-react';
+import Calendar from '@/components/Calendar';
+import { Plus, Search, Trash2, Calendar as CalendarIcon, CheckCircle, Clock, LayoutGrid, CalendarDays } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Class, Student } from '@/types';
 
@@ -17,11 +18,14 @@ export default function ClassesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
     student_id: '',
     date: new Date().toISOString().split('T')[0],
+    time: '10:00',
     completed_count: 1,
   });
 
@@ -30,20 +34,25 @@ export default function ClassesPage() {
   }, []);
 
   useEffect(() => {
-    // Filter classes based on search query
+    // Filter classes based on search query and selected date
+    let filtered = classes;
+
+    if (selectedDate) {
+      filtered = filtered.filter((c) => c.date === selectedDate);
+    }
+
     if (searchQuery) {
-      const filtered = classes.filter((c) => {
+      filtered = filtered.filter((c) => {
         const student = students.find((s) => s.id === c.student_id);
         return (
           student?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.date.includes(searchQuery)
         );
       });
-      setFilteredClasses(filtered);
-    } else {
-      setFilteredClasses(classes);
     }
-  }, [searchQuery, classes, students]);
+
+    setFilteredClasses(filtered);
+  }, [searchQuery, classes, students, selectedDate]);
 
   async function fetchData() {
     try {
@@ -76,6 +85,7 @@ export default function ClassesPage() {
       setFormData({
         student_id: '',
         date: new Date().toISOString().split('T')[0],
+        time: '10:00',
         completed_count: 1,
       });
       fetchData();
@@ -105,6 +115,20 @@ export default function ClassesPage() {
     return students.find((s) => s.id === studentId)?.name || 'Unknown';
   }
 
+  function getDayName(dateStr: string) {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('en-US', { weekday: 'long' });
+  }
+
+  function formatTime(timeStr?: string) {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  }
+
   if (loading) {
     return (
       <AppLayout>
@@ -127,10 +151,29 @@ export default function ClassesPage() {
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Classes</h1>
             <p className="text-gray-400">Track student class attendance</p>
           </div>
-          <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
-            <Plus className="w-5 h-5 mr-2" />
-            Add Class
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setViewMode(viewMode === 'calendar' ? 'list' : 'calendar')}
+              variant="ghost"
+              className="w-auto"
+            >
+              {viewMode === 'calendar' ? (
+                <>
+                  <LayoutGrid className="w-5 h-5 mr-2" />
+                  List View
+                </>
+              ) : (
+                <>
+                  <CalendarDays className="w-5 h-5 mr-2" />
+                  Calendar
+                </>
+              )}
+            </Button>
+            <Button onClick={() => setShowAddModal(true)} className="w-auto">
+              <Plus className="w-5 h-5 mr-2" />
+              Add Class
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
@@ -145,50 +188,128 @@ export default function ClassesPage() {
           />
         </div>
 
-        {/* Classes List */}
-        {filteredClasses.length === 0 ? (
-          <Card>
-            <p className="text-gray-400 text-center py-12">
-              {searchQuery ? 'No classes found' : 'No classes yet. Add your first class!'}
-            </p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {filteredClasses.map((classItem) => (
-              <Card key={classItem.id} hover>
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg md:text-xl font-bold mb-1">
-                        {getStudentName(classItem.student_id)}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(classItem.date).toLocaleDateString()}
+        {/* Calendar View */}
+        {viewMode === 'calendar' && (
+          <>
+            <Calendar 
+              classes={classes} 
+              students={students}
+              onDateSelect={setSelectedDate}
+              selectedDate={selectedDate}
+            />
+
+            {selectedDate && (
+              <Card>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">
+                    {getDayName(selectedDate)} - {new Date(selectedDate + 'T00:00:00').toLocaleDateString()}
+                  </h2>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
+                    Clear
+                  </Button>
+                </div>
+                {filteredClasses.length === 0 ? (
+                  <p className="text-gray-400 text-center py-8">No classes on this date</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredClasses.map((classItem) => (
+                      <div key={classItem.id} className="glass rounded-lg p-4 hover:bg-gray-800/50 transition-colors">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold mb-1">
+                              {getStudentName(classItem.student_id)}
+                            </h3>
+                            {classItem.time && (
+                              <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <Clock className="w-4 h-4" />
+                                {formatTime(classItem.time)}
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDeleteClass(classItem.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-400" />
+                          <span className="text-sm">
+                            <span className="font-bold text-green-400">
+                              {classItem.completed_count}
+                            </span>{' '}
+                            {classItem.completed_count === 1 ? 'class' : 'classes'} completed
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <>
+            {filteredClasses.length === 0 ? (
+              <Card>
+                <p className="text-gray-400 text-center py-12">
+                  {searchQuery ? 'No classes found' : 'No classes yet. Add your first class!'}
+                </p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                {filteredClasses.map((classItem) => (
+                  <Card key={classItem.id} hover>
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg md:text-xl font-bold mb-1">
+                            {getStudentName(classItem.student_id)}
+                          </h3>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                              <CalendarIcon className="w-4 h-4" />
+                              <span>{getDayName(classItem.date)}</span>
+                              <span>•</span>
+                              <span>{new Date(classItem.date + 'T00:00:00').toLocaleDateString()}</span>
+                            </div>
+                            {classItem.time && (
+                              <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <Clock className="w-4 h-4" />
+                                {formatTime(classItem.time)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeleteClass(classItem.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-400" />
+                        <span className="text-sm">
+                          <span className="font-bold text-green-400">
+                            {classItem.completed_count}
+                          </span>{' '}
+                          {classItem.completed_count === 1 ? 'class' : 'classes'} completed
+                        </span>
                       </div>
                     </div>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleDeleteClass(classItem.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-400" />
-                    <span className="text-sm">
-                      <span className="font-bold text-green-400">
-                        {classItem.completed_count}
-                      </span>{' '}
-                      {classItem.completed_count === 1 ? 'class' : 'classes'} completed
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -221,6 +342,13 @@ export default function ClassesPage() {
             required
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+          />
+          <Input
+            label="Time"
+            type="time"
+            required
+            value={formData.time}
+            onChange={(e) => setFormData({ ...formData, time: e.target.value })}
           />
           <Input
             label="Number of Classes Completed"
