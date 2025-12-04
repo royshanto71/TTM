@@ -12,7 +12,13 @@ export const metadata: Metadata = {
   title: "Tuition Management System",
   description: "Manage students, classes, fees, and payments efficiently",
   manifest: "/manifest.json",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: "#6366f1",
 };
 
