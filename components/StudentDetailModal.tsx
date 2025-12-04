@@ -8,7 +8,8 @@ import Card from './Card';
 import ProgressBar from './ProgressBar';
 import { Student, Class, Payment, Note } from '@/types';
 import { supabase } from '@/lib/supabase';
-import { Calendar, DollarSign, StickyNote, Trash2, Plus, RefreshCw } from 'lucide-react';
+import { Calendar, DollarSign, StickyNote, Trash2, Plus, RefreshCw, Download } from 'lucide-react';
+import { generateStudentReport } from './ReportGenerator';
 
 interface StudentDetailModalProps {
   student: Student;
@@ -218,6 +219,17 @@ export default function StudentDetailModal({
         <div className="space-y-6">
           {/* Student Info */}
           <Card>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+              <h3 className="text-lg font-bold">Student Details</h3>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => generateStudentReport({ student, classes, payments, notes })}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Report
+              </Button>
+            </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-400">Class:</span>
