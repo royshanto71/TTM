@@ -258,6 +258,54 @@ a {
       margin-top: 2rem;
     }
   }
+  
+  /* Section header styling for flatter UI */
+  .section-header {
+    background: rgba(31, 41, 55, 0.3);
+    backdrop-filter: blur(4px);
+    border-bottom: 1px solid rgba(55, 65, 81, 0.3);
+  }
+  
+  /* Subtle list item */
+  .list-item-light {
+    background: rgba(31, 41, 55, 0.2);
+    border-bottom: 1px solid rgba(55, 65, 81, 0.3);
+  }
+  
+  .list-item-light:last-child {
+    border-bottom: none;
+  }
+  
+  /* Scrollable container with max height */
+  .scrollable-list {
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  
+  .scrollable-list::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .scrollable-list::-webkit-scrollbar-track {
+    background: rgba(31, 41, 55, 0.3);
+    border-radius: 2px;
+  }
+  
+  .scrollable-list::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.5);
+    border-radius: 2px;
+  }
+  
+  .scrollable-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.7);
+  }
+  
+  /* Sticky section header */
+  .sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
 }
 
 /* Mobile-specific improvements */

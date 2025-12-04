@@ -58,8 +58,8 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
               `}
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 md:p-6 border-b border-[var(--border)] flex-shrink-0">
-                <h2 className="text-xl md:text-2xl font-bold">{title}</h2>
+              <div className="flex items-center justify-between p-3 md:p-6 border-b border-[var(--border)] flex-shrink-0">
+                <h2 className="text-lg md:text-2xl font-bold truncate pr-4">{title}</h2>
                 <button
                   onClick={onClose}
                   className="p-2 rounded-lg hover:bg-gray-800 transition-colors touch-target"
@@ -70,7 +70,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
               </div>
               
               {/* Content - Scrollable */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth">
+              <div className="flex-1 overflow-y-auto p-3 md:p-6 scroll-smooth">
                 {children}
               </div>
             </motion.div>
