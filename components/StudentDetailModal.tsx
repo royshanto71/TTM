@@ -1,13 +1,24 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Modal from './Modal';
-import Button from './Button';
-import Input from './Input';
-import ProgressBar from './ProgressBar';
 import { Student, Class, Payment, Note } from '@/types';
 import { supabase } from '@/lib/supabase';
-import { Calendar, DollarSign, StickyNote, Trash2, Plus, RefreshCw, Download, User, Phone, CreditCard } from 'lucide-react';
+import { 
+  Calendar as CalendarIcon, 
+  Download, 
+  Edit, 
+  X, 
+  ChevronDown, 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  CalendarDays, 
+  CreditCard, 
+  FileText,
+  Trash2,
+  Save
+} from 'lucide-react';
 import { generateStudentReport } from './ReportGenerator';
 
 interface StudentDetailModalProps {
@@ -28,12 +39,20 @@ export default function StudentDetailModal({
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Edit Mode State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: student.name,
+    class: student.class,
+    contact: student.contact,
+    fees_per_month: student.fees_per_month,
+  });
+
   // Form states
-  const [classDate, setClassDate] = useState(new Date().toISOString().split('T')[0]);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [paymentAmount, setPaymentAmount] = useState(student.fees_per_month);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [noteText, setNoteText] = useState('');
-  const [newMonthlyTarget, setNewMonthlyTarget] = useState(student.monthly_target_classes);
 
   const fetchStudentData = useCallback(async () => {
     try {
@@ -73,15 +92,119 @@ export default function StudentDetailModal({
   useEffect(() => {
     if (isOpen) {
       fetchStudentData();
+      setEditForm({
+        name: student.name,
+        class: student.class,
+        contact: student.contact,
+        fees_per_month: student.fees_per_month,
+      });
+      setIsEditing(false);
     }
-  }, [isOpen, fetchStudentData]);
+  }, [isOpen, fetchStudentData, student]);
+
+  async function handleSaveStudent() {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({
+          name: editForm.name,
+          class: editForm.class,
+          contact: editForm.contact,
+          fees_per_month: editForm.fees_per_month,
+        })
+        .eq('id', student.id);
+
+      if (error) throw error;
+      
+      setIsEditing(false);
+      onUpdate(); // Refresh parent list
+      // Note: student prop won't update immediately unless parent re-renders and passes new prop
+      // We might need to rely on parent update or local optimistic update if needed.
+      // For now, assuming onUpdate triggers a re-fetch in parent.
+    } catch (error) {
+      console.error('Error updating student:', error);
+      alert('Failed to update student details');
+    }
+  }
+
+  // Calendar Logic
+  const calendarDays = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Adjust for Monday start
+
+    const days = [];
+    // Previous month filler
+    for (let i = 0; i < startingDay; i++) {
+      days.push(null);
+    }
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  }, [currentDate]);
+
+  const getClassForDate = (date: Date) => {
+    return classes.find(c => {
+      const cDate = new Date(c.date);
+      return cDate.getDate() === date.getDate() &&
+             cDate.getMonth() === date.getMonth() &&
+             cDate.getFullYear() === date.getFullYear();
+    });
+  };
+
+  async function handleDateClick(date: Date) {
+    const existingClass = getClassForDate(date);
+    const dateStr = date.toISOString().split('T')[0];
+
+    try {
+      if (existingClass) {
+        // Remove class
+        const { error } = await supabase
+          .from('classes')
+          .delete()
+          .eq('id', existingClass.id);
+        
+        if (error) throw error;
+      } else {
+        // Add class
+        const { error } = await supabase.from('classes').insert([
+          {
+            student_id: student.id,
+            date: dateStr,
+            completed_count: 1,
+          },
+        ]);
+
+        if (error) throw error;
+      }
+      fetchStudentData();
+      onUpdate();
+    } catch (error) {
+      console.error('Error toggling class:', error);
+      alert('Failed to update class');
+    }
+  }
 
   async function handleAddClass() {
+    // Keep this for the "Add Class" button, defaulting to today
+    const dateStr = new Date().toISOString().split('T')[0];
+    // Check if class already exists for today to avoid duplicates if using button
+    const today = new Date();
+    if (getClassForDate(today)) {
+        alert('Class already marked for today.');
+        return;
+    }
+
     try {
       const { error } = await supabase.from('classes').insert([
         {
           student_id: student.id,
-          date: classDate,
+          date: dateStr,
           completed_count: 1,
         },
       ]);
@@ -142,7 +265,27 @@ export default function StudentDetailModal({
     }
   }
 
+  async function handleStartNewMonth() {
+    if (!confirm('Start a new month? This will reset completed classes.')) return;
+
+    try {
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('student_id', student.id);
+
+      if (error) throw error;
+      fetchStudentData();
+      onUpdate();
+    } catch (error) {
+      console.error('Error starting new month:', error);
+      alert('Failed to start new month');
+    }
+  }
+
   async function handleDeleteNote(noteId: string) {
+    if (!confirm('Are you sure you want to delete this note?')) return;
+    
     try {
       const { error } = await supabase.from('notes').delete().eq('id', noteId);
 
@@ -154,49 +297,7 @@ export default function StudentDetailModal({
     }
   }
 
-  async function handleUpdateMonthlyTarget() {
-    try {
-      const { error } = await supabase
-        .from('students')
-        .update({ monthly_target_classes: newMonthlyTarget })
-        .eq('id', student.id);
-
-      if (error) throw error;
-      onUpdate();
-      alert('Monthly target updated successfully!');
-    } catch (error) {
-      console.error('Error updating monthly target:', error);
-      alert('Failed to update monthly target');
-    }
-  }
-
-  async function handleStartNewMonth() {
-    if (
-      !confirm(
-        'Are you sure you want to start a new month? This will reset completed classes to zero while keeping fees history and notes intact.'
-      )
-    ) {
-      return;
-    }
-
-    try {
-      // Delete all classes for this student (reset)
-      const { error } = await supabase
-        .from('classes')
-        .delete()
-        .eq('student_id', student.id);
-
-      if (error) throw error;
-      fetchStudentData();
-      onUpdate();
-      alert('New month started successfully!');
-    } catch (error) {
-      console.error('Error starting new month:', error);
-      alert('Failed to start new month');
-    }
-  }
-
-  // Calculate stats
+  // Stats
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const monthClasses = classes.filter((c) => {
@@ -204,247 +305,336 @@ export default function StudentDetailModal({
     return classDate.getMonth() === currentMonth && classDate.getFullYear() === currentYear;
   });
   const completedThisMonth = monthClasses.reduce((sum, c) => sum + c.completed_count, 0);
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const progressPercentage = Math.min((completedThisMonth / student.monthly_target_classes) * 100, 100);
+  
+  const lastPayment = payments.length > 0 ? payments[0] : null;
+
+  if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={student.name} size="xl">
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading student data...</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Student Details Section */}
-          <div className="bg-gray-800/20 rounded-xl border border-gray-700/30 overflow-hidden">
-            <div className="section-header px-4 py-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-300">
-                <User className="w-4 h-4" />
-                Student Details
-              </h3>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-8 px-2 text-xs"
-                onClick={() => generateStudentReport({ student, classes, payments, notes })}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-surface-light dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto font-display">
+        
+        {/* Header */}
+        <div className="p-4 border-b border-subtle-light dark:border-subtle-dark sticky top-0 bg-surface-light dark:bg-surface-dark z-10">
+          <div className="flex items-center justify-between">
+            {isEditing ? (
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                className="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-b border-primary-DEFAULT focus:outline-none w-full mr-4"
+              />
+            ) : (
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{student.name}</h1>
+            )}
+            
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <button 
+                  onClick={handleSaveStudent}
+                  className="flex items-center gap-2 text-sm font-semibold bg-accent-green text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  Save
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 text-sm font-semibold bg-primary-DEFAULT text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit
+                </button>
+              )}
+              <button 
+                onClick={onClose}
+                className="text-gray-500 dark:text-gray-400 p-2 rounded-full hover:bg-subtle-light dark:hover:bg-subtle-dark transition-colors"
               >
-                <Download className="w-3.5 h-3.5 mr-1.5" />
-                Report
-              </Button>
-            </div>
-            <div className="p-4 grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs text-gray-500 block mb-1">Class</span>
-                <span className="text-sm font-medium">{student.class}</span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 block mb-1">Contact</span>
-                <span className="text-sm font-medium">{student.contact}</span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 block mb-1">Monthly Fees</span>
-                <span className="text-sm font-medium text-green-400">৳{student.fees_per_month}</span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 block mb-1">Total Paid</span>
-                <span className="text-sm font-medium text-green-400">৳{totalPaid}</span>
-              </div>
+                <X className="w-6 h-6" />
+              </button>
             </div>
           </div>
+        </div>
+
+        <main className="p-4 space-y-6">
+          {/* Student Details Section */}
+          <section className="bg-surface-light dark:bg-surface-dark p-1 rounded-xl space-y-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Student Details</h2>
+                <p className="text-sm text-muted-light dark:text-muted-dark">Personal and fee information</p>
+              </div>
+              <button 
+                onClick={() => generateStudentReport({ student, classes, payments, notes })}
+                className="flex items-center gap-1.5 text-sm text-muted-light dark:text-muted-dark hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Report
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-light dark:text-muted-dark">Class</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editForm.class}
+                    onChange={(e) => setEditForm({...editForm, class: e.target.value})}
+                    className="font-medium text-gray-800 dark:text-gray-200 bg-subtle-light dark:bg-subtle-dark rounded px-2 py-1 w-full"
+                  />
+                ) : (
+                  <p className="font-medium text-gray-800 dark:text-gray-200">{student.class}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-muted-light dark:text-muted-dark">Contact</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editForm.contact}
+                    onChange={(e) => setEditForm({...editForm, contact: e.target.value})}
+                    className="font-medium text-gray-800 dark:text-gray-200 bg-subtle-light dark:bg-subtle-dark rounded px-2 py-1 w-full"
+                  />
+                ) : (
+                  <p className="font-medium text-gray-800 dark:text-gray-200">{student.contact}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-muted-light dark:text-muted-dark">Monthly Fees</p>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    value={editForm.fees_per_month}
+                    onChange={(e) => setEditForm({...editForm, fees_per_month: parseFloat(e.target.value)})}
+                    className="font-medium text-gray-800 dark:text-gray-200 bg-subtle-light dark:bg-subtle-dark rounded px-2 py-1 w-full"
+                  />
+                ) : (
+                  <p className="font-medium text-gray-800 dark:text-gray-200">৳{student.fees_per_month}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-muted-light dark:text-muted-dark">Last Paid</p>
+                <p className="font-medium text-accent-green">
+                  {lastPayment ? `৳${lastPayment.amount}` : '-'}
+                </p>
+              </div>
+            </div>
+          </section>
 
           {/* Monthly Progress Section */}
-          <div className="bg-gray-800/20 rounded-xl border border-gray-700/30 overflow-hidden">
-            <div className="section-header px-4 py-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-300">
-                <RefreshCw className="w-4 h-4" />
-                Monthly Progress
-              </h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleStartNewMonth} 
-                className="h-8 px-2 text-xs text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+          <section className="bg-surface-light dark:bg-surface-dark p-1 rounded-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Monthly Progress</h2>
+              <button 
+                onClick={handleStartNewMonth}
+                className="text-sm bg-subtle-light dark:bg-subtle-dark text-gray-800 dark:text-gray-200 px-3 py-1.5 rounded-md font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 Start New Month
-              </Button>
+              </button>
             </div>
-            <div className="p-4 space-y-4">
-              <ProgressBar
-                current={completedThisMonth}
-                target={student.monthly_target_classes}
-                label="Classes Completed"
-                variant="success"
-              />
-              <div className="flex flex-col sm:flex-row gap-3 items-end">
-                <Input
-                  type="number"
-                  label="New Target"
-                  value={newMonthlyTarget}
-                  onChange={(e) => setNewMonthlyTarget(parseInt(e.target.value))}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handleUpdateMonthlyTarget} 
-                  size="sm" 
-                  className="w-full sm:w-auto h-[42px]"
-                >
-                  Update
-                </Button>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-light dark:text-muted-dark">Classes Completed</span>
+                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                  {completedThisMonth} / {student.monthly_target_classes}
+                </span>
+              </div>
+              <div className="w-full bg-subtle-light dark:bg-subtle-dark rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-primary-start to-primary-end h-2 rounded-full transition-all duration-500" 
+                  style={{ width: `${progressPercentage}%` }}
+                ></div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Classes Section */}
-          <div className="bg-gray-800/20 rounded-xl border border-gray-700/30 overflow-hidden">
-            <div className="section-header px-4 py-2">
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-300">
-                <Calendar className="w-4 h-4" />
-                Classes
-              </h3>
-            </div>
-            <div className="p-4">
-              <div className="flex flex-col sm:flex-row gap-3 mb-4 items-end">
-                <Input
-                  type="date"
-                  label="Date"
-                  value={classDate}
-                  onChange={(e) => setClassDate(e.target.value)}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handleAddClass} 
-                  size="sm" 
-                  className="w-full sm:w-auto h-[42px]"
+          <div className="space-y-4">
+            {/* Classes Accordion */}
+            <details className="group bg-surface-light dark:bg-surface-dark rounded-xl border border-subtle-light dark:border-subtle-dark overflow-hidden" open>
+              <summary className="flex items-center justify-between p-5 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  <CalendarDays className="text-primary-DEFAULT w-6 h-6" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Classes</h3>
+                </div>
+                <ChevronDown className="w-5 h-5 text-muted-light dark:text-muted-dark transition-transform duration-300 group-open:rotate-180" />
+              </summary>
+              <div className="px-5 pb-5 space-y-4 border-t border-subtle-light dark:border-subtle-dark pt-4">
+                <div className="relative">
+                  <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-light dark:text-muted-dark w-5 h-5" />
+                  <input 
+                    className="w-full bg-subtle-light dark:bg-subtle-dark border-0 rounded-md pl-10 pr-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none" 
+                    type="text" 
+                    readOnly
+                    value={currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  />
+                </div>
+                <button 
+                  onClick={handleAddClass}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary-start to-primary-end text-white font-semibold py-2.5 rounded-md hover:opacity-90 transition-opacity"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-5 h-5" />
                   Add Class
-                </Button>
-              </div>
-              
-              <div className="scrollable-list border border-gray-700/30 rounded-lg bg-gray-900/20">
-                {classes.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4 text-sm">No classes recorded</p>
-                ) : (
-                  classes.map((cls) => (
-                    <div
-                      key={cls.id}
-                      className="list-item-light flex items-center justify-between p-3"
+                </button>
+                
+                {/* Calendar View */}
+                <div className="text-center">
+                  <div className="flex justify-between items-center mb-4">
+                    <button 
+                      onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
+                      className="p-2 rounded-full hover:bg-subtle-light dark:hover:bg-subtle-dark text-muted-light dark:text-muted-dark transition-colors"
                     >
-                      <span className="text-sm text-gray-300">{new Date(cls.date).toLocaleDateString()}</span>
-                      <span className="text-sm text-green-400 font-medium">{cls.completed_count} class</span>
-                    </div>
-                  ))
-                )}
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                      {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    </h4>
+                    <button 
+                      onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
+                      className="p-2 rounded-full hover:bg-subtle-light dark:hover:bg-subtle-dark text-muted-light dark:text-muted-dark transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-y-2 text-sm">
+                    {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
+                      <div key={day} className="font-medium text-muted-light dark:text-muted-dark">{day}</div>
+                    ))}
+                    
+                    {calendarDays.map((date, i) => {
+                      const hasClass = date ? getClassForDate(date) : false;
+                      return (
+                        <div key={i} className="relative h-8 flex items-center justify-center">
+                          {date && (
+                            <button
+                              onClick={() => handleDateClick(date)}
+                              className={`
+                                w-8 h-8 flex flex-col items-center justify-center rounded-full text-sm transition-all
+                                ${hasClass 
+                                  ? 'bg-subtle-light dark:bg-subtle-dark text-gray-900 dark:text-white font-bold' 
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-subtle-light dark:hover:bg-subtle-dark'}
+                              `}
+                            >
+                              <span>{date.getDate()}</span>
+                              {hasClass && (
+                                <span className="w-1 h-1 bg-primary-DEFAULT rounded-full mt-0.5"></span>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </details>
 
-          {/* Payments Section */}
-          <div className="bg-gray-800/20 rounded-xl border border-gray-700/30 overflow-hidden">
-            <div className="section-header px-4 py-2">
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-300">
-                <DollarSign className="w-4 h-4" />
-                Payments
-              </h3>
-            </div>
-            <div className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                <Input
-                  type="number"
-                  label="Amount (৳)"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(parseFloat(e.target.value))}
-                />
-                <Input
-                  type="date"
-                  label="Date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleAddPayment} className="w-full mb-4" size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Payment
-              </Button>
-              
-              <div className="scrollable-list border border-gray-700/30 rounded-lg bg-gray-900/20">
-                {payments.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4 text-sm">No payments recorded</p>
-                ) : (
-                  payments.map((payment) => (
-                    <div
-                      key={payment.id}
-                      className="list-item-light flex items-center justify-between p-3"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-gray-200">৳{payment.amount}</p>
-                        <p className="text-xs text-gray-500">
-                          {payment.month} {payment.year}
-                        </p>
-                      </div>
-                      <span className="text-xs text-gray-500">
+            {/* Payments Accordion */}
+            <details className="group bg-surface-light dark:bg-surface-dark rounded-xl border border-subtle-light dark:border-subtle-dark overflow-hidden">
+              <summary className="flex items-center justify-between p-5 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="text-primary-DEFAULT w-6 h-6" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Payments</h3>
+                </div>
+                <ChevronDown className="w-5 h-5 text-muted-light dark:text-muted-dark transition-transform duration-300 group-open:rotate-180" />
+              </summary>
+              <div className="px-5 pb-5 space-y-4 border-t border-subtle-light dark:border-subtle-dark pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-muted-light dark:text-muted-dark mb-1" htmlFor="amount">Amount (৳)</label>
+                    <input 
+                      className="w-full bg-subtle-light dark:bg-subtle-dark border-0 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none" 
+                      id="amount" 
+                      type="number" 
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(parseFloat(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-muted-light dark:text-muted-dark mb-1" htmlFor="date">Date</label>
+                    <div className="relative">
+                      <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-light dark:text-muted-dark w-4 h-4 pointer-events-none" />
+                      <input 
+                        className="w-full bg-subtle-light dark:bg-subtle-dark border-0 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none" 
+                        id="date" 
+                        type="date" 
+                        value={paymentDate}
+                        onChange={(e) => setPaymentDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleAddPayment}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary-start to-primary-end text-white font-semibold py-2.5 rounded-md hover:opacity-90 transition-opacity"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Payment
+                </button>
+                <ul className="space-y-2">
+                  {payments.map((payment) => (
+                    <li key={payment.id} className="flex justify-between items-center p-3 bg-subtle-light dark:bg-subtle-dark rounded-md">
+                      <span className="font-semibold text-gray-900 dark:text-white text-lg">৳{payment.amount}</span>
+                      <span className="text-sm text-muted-light dark:text-muted-dark">
                         {new Date(payment.date).toLocaleDateString()}
                       </span>
-                    </div>
-                  ))
-                )}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          </div>
+            </details>
 
-          {/* Notes Section */}
-          <div className="bg-gray-800/20 rounded-xl border border-gray-700/30 overflow-hidden">
-            <div className="section-header px-4 py-2">
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-300">
-                <StickyNote className="w-4 h-4" />
-                Notes
-              </h3>
-            </div>
-            <div className="p-4">
-              <div className="flex flex-col sm:flex-row gap-3 mb-4 items-end">
-                <Input
-                  type="text"
-                  label="Note"
-                  placeholder="Add a note..."
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  className="flex-1"
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddNote()}
-                />
-                <Button 
-                  onClick={handleAddNote} 
-                  size="sm" 
-                  className="w-full sm:w-auto h-[42px]"
+            {/* Notes Accordion */}
+            <details className="group bg-surface-light dark:bg-surface-dark rounded-xl border border-subtle-light dark:border-subtle-dark overflow-hidden">
+              <summary className="flex items-center justify-between p-5 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  <FileText className="text-primary-DEFAULT w-6 h-6" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notes</h3>
+                </div>
+                <ChevronDown className="w-5 h-5 text-muted-light dark:text-muted-dark transition-transform duration-300 group-open:rotate-180" />
+              </summary>
+              <div className="px-5 pb-5 space-y-4 border-t border-subtle-light dark:border-subtle-dark pt-4">
+                <div>
+                  <label className="block text-sm font-medium text-muted-light dark:text-muted-dark mb-1" htmlFor="note">Note</label>
+                  <textarea 
+                    className="w-full bg-subtle-light dark:bg-subtle-dark border-0 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none" 
+                    id="note" 
+                    placeholder="Add a note..." 
+                    rows={3}
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                  ></textarea>
+                </div>
+                <button 
+                  onClick={handleAddNote}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary-start to-primary-end text-white font-semibold py-2.5 rounded-md hover:opacity-90 transition-opacity"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add
-                </Button>
+                  <Plus className="w-5 h-5" />
+                  Add Note
+                </button>
+                <ul className="space-y-3">
+                  {notes.map((note) => (
+                    <li key={note.id} className="p-3 bg-subtle-light dark:bg-subtle-dark rounded-md">
+                      <p className="text-gray-800 dark:text-gray-200">{note.note_text}</p>
+                      <div className="flex justify-end items-center mt-2 gap-2 text-muted-light dark:text-muted-dark">
+                        <button className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteNote(note.id)}
+                          className="p-1 rounded-full text-accent-red hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              
-              <div className="scrollable-list border border-gray-700/30 rounded-lg bg-gray-900/20">
-                {notes.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4 text-sm">No notes yet</p>
-                ) : (
-                  notes.map((note) => (
-                    <div
-                      key={note.id}
-                      className="list-item-light flex items-start justify-between p-3"
-                    >
-                      <p className="flex-1 text-sm text-gray-300 leading-relaxed">{note.note_text}</p>
-                      <button
-                        onClick={() => handleDeleteNote(note.id)}
-                        className="text-gray-500 hover:text-red-400 ml-3 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            </details>
           </div>
-        </div>
-      )}
-    </Modal>
+        </main>
+      </div>
+    </div>
   );
 }
